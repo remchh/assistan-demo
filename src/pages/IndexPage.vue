@@ -4,14 +4,16 @@
 
      <div class="col-4 q-pa-md" style="width: 100%;">
         <q-chat-message class="text-subtitle1"
+          v-for="question in questions" :key="question.id" 
+          v-show="question.id !== 0"
           :text="[question.content]"
           sent
-          v-for="question in questions" :key="questions.id"
         />
 
-        <q-chat-message class="text-subtitle1"
 
-          :text="['Response from OPEN AI']"
+        <q-chat-message class="text-subtitle1"
+          v-if="response != ''"
+          :text="[response]"
         />
       </div> 
 
@@ -43,6 +45,7 @@ export default defineComponent({
 })
 
 import { openai } from 'src/boot/config'
+import { list } from 'postcss';
 
 
 const asstID = 'asst_3vDsPjJJRBj1Iox6jxjFOpfP'
@@ -77,13 +80,12 @@ createAssistan()*/
 console.log(thread)*/
 
 //Create a message for the thread
-async function createMessage() {
+async function createMessage(question) {
   const threadMessages = await openai.beta.threads.messages.create(
     threadID,
-    { role: "user", content: "Can you recommend an action movie?" }
+    { role: "user", content: question }
   )
-
-  console.log(threadMessages)
+  //console.log(threadMessages)
 }
 
 //createMessage()
@@ -92,34 +94,40 @@ async function createMessage() {
 async function runThread() {
   const run = await openai.beta.threads.runs.create(
     threadID,
-    { assistant_id: asstID }
+    { assistant_id: asstID,
+      instructions: `Please do not provide annotations in your reply. Only reply about movies in the provided file. If questions are not related to movies, respond with "Sorry, I don't know." Keep your answers short.` 
+    }
   )
-
-  console.log(run)
+  return run
 }
 
 //runThread()
 
 
-//Get the current run
-/*const currentRun = await openai.beta.threads.runs.retrieve(
-    threadID,
-    "run_im95Bfx0ksgMvo2gd8579icB"
-  )
-
-console.log("Run status: " + currentRun.status)*/
-
 //List thread messages
 async function listMessages() {
-  const threadMessages = await openai.beta.threads.messages.list(
+  return await openai.beta.threads.messages.list(
     threadID
   )
 
-  console.log(threadMessages.data[0].content[0].text.value);
+  //console.log(threadMessages.data[0].content[0].text.value);
 }
 
 //listMessages()
 
+// Get the current run 2
+async function retrieveRun(thread, run) {
+  return await openai.beta.threads.runs.retrieve(thread, run)
+
+//Get the current run 1
+/*const currentRun = await openai.beta.threads.runs.retrieve(
+    threadID,
+    "run_im95Bfx0ksgMvo2gd8579icB"
+  )*/
+
+//console.log("Run status: " + currentRun.status)
+
+}
 
 </script>
 
@@ -129,20 +137,49 @@ import { ref } from 'vue'
 
 const newQuestion = ref('')
 const questions = ref([
-  {id:0, content:'My question'}
+  {id:0, content:''}
 ])
 const response = ref('')
 
 const sendQuestion = () => {
   
   questions.value.push({
-    id: questions.value.length + 1,
-    content: newQuestion.value
-  })
+      id: questions.value.length + 1,
+      content: newQuestion.value 
+    })
   newQuestion.value = ''
   console.log('Question sended', questions.value[1].content)
+  aiResponse()
 }
 
-console.log(questions.value)
+async function aiResponse() {
+  response.value = 'Thinking...'
+    
+    //create a message
+    await createMessage(questions.value[1].content)
+
+    //create a run
+    const run = await runThread()
+    console.log(run)
+
+    // Retrieve the current run
+    let currentRun = await retrieveRun(threadID, run.id);
+  
+    // Keep Run status up to date
+    // Poll for updates and check if run status is completed    
+    while (currentRun.status !== 'completed') {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log(currentRun.status);
+      currentRun = await retrieveRun(threadID, run.id);
+    } 
+
+    //get messages from the thread
+    const { data } = await listMessages()
+
+    //Display the last message for the current run
+    response.value = data[0].content[0].text.value
+}
+
+//console.log(questions.value)
 
 </script>
