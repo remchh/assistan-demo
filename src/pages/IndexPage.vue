@@ -12,15 +12,16 @@
 
 
         <q-chat-message class="text-subtitle1"
-          v-if="response != ''"
-          :text="[response]"
+          v-for="response in responses" :key="response.id"
+          v-show="response.id !== 0"
+          :text="[response.response]"
         />
       </div> 
 
       
     
       <div class='col-4' style="width: 100%;" >
-        <q-input outlined autogrow v-model="newQuestion" placeholder="How can I help?">
+        <q-input outlined autogrow v-model="newQuestion" placeholder="How can I help?" @keyup.enter="sendQuestion()">
           <template v-slot:append>
             <q-avatar>
               <img src="https://cdn.quasar.dev/logo-v2/svg/logo.svg">
@@ -45,7 +46,6 @@ export default defineComponent({
 })
 
 import { openai } from 'src/boot/config'
-import { list } from 'postcss';
 
 
 const asstID = 'asst_3vDsPjJJRBj1Iox6jxjFOpfP'
@@ -139,7 +139,6 @@ const newQuestion = ref('')
 const questions = ref([
   {id:0, content:''}
 ])
-const response = ref('')
 
 const sendQuestion = () => {
   
@@ -148,12 +147,20 @@ const sendQuestion = () => {
       content: newQuestion.value 
     })
   newQuestion.value = ''
-  console.log('Question sended', questions.value[1].content)
-  aiResponse()
+  console.log('Question sended:', questions.value[1].content)
+  //aiResponse()
 }
 
+
+const responses = ref([
+  {id:0, response: ''}
+])
+
+
+
+
 async function aiResponse() {
-  response.value = 'Thinking...'
+  responses.value.response = 'Thinking...'
     
     //create a message
     await createMessage(questions.value[1].content)
@@ -177,7 +184,14 @@ async function aiResponse() {
     const { data } = await listMessages()
 
     //Display the last message for the current run
-    response.value = data[0].content[0].text.value
+    //responses.value.response = data[0].content[0].text.value
+   
+  responses.value.push({
+    id: responses.value.length + 1,
+    response: data[0].content[0].text.value
+  })
+
+
 }
 
 //console.log(questions.value)
