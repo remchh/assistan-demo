@@ -13,9 +13,10 @@
 
         <q-chat-message class="text-subtitle1"
           v-for="response in responses" :key="response.id"
-          v-show="response.id !== 0"
+          v-show="response.response !==''"
           :text="[response.response]"
         />
+
       </div> 
 
       
@@ -147,8 +148,8 @@ const sendQuestion = () => {
       content: newQuestion.value 
     })
   newQuestion.value = ''
-  console.log('Question sended:', questions.value[1].content)
-  //aiResponse()
+  console.log('Question sended:', questions.value[questions.value.length -1].content)
+  aiResponse()
 }
 
 
@@ -156,14 +157,22 @@ const responses = ref([
   {id:0, response: ''}
 ])
 
+//const merge = ref(questions.value.concat(responses.value))
+
+/*const merge = ref([
+  {id:8, question: 'question1', response: 'response1'},
+  {id:9, question: 'question2', response: 'response2'},
+  {id:10, question: 'question3', response: 'response3'},
+])
+console.log(merge.value)*/
 
 
 
 async function aiResponse() {
-  responses.value.response = 'Thinking...'
+  responses.value[0].response = 'Thinking...'
     
     //create a message
-    await createMessage(questions.value[1].content)
+    await createMessage(questions.value[questions.value.length -1].content)
 
     //create a run
     const run = await runThread()
@@ -190,7 +199,7 @@ async function aiResponse() {
     id: responses.value.length + 1,
     response: data[0].content[0].text.value
   })
-
+  responses.value[0].response = ''
 
 }
 
