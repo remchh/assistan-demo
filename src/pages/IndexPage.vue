@@ -3,20 +3,20 @@
 
 
      <div class="col-4 q-pa-md" style="width: 100%;">
-        <q-chat-message class="text-subtitle1"
+        <q-chat-message 
+          class="text-subtitle1"
           v-for="question in questions" :key="question.id" 
-          v-show="question.id !== 0"
+          v-show="question.content !== ''"
           :text="[question.content]"
-          sent
+          :sent="question.id % 2 == 0"
         />
-
-
-        <q-chat-message class="text-subtitle1"
-          v-for="response in responses" :key="response.id"
-          v-show="response.response !==''"
-          :text="[response.response]"
-        />
-
+        
+        <q-chat-message
+          bg-color="amber"
+          v-show="loading === true"
+        >
+          <q-spinner-dots size="2rem" />
+        </q-chat-message>
       </div> 
 
       
@@ -138,8 +138,10 @@ import { ref } from 'vue'
 
 const newQuestion = ref('')
 const questions = ref([
-  {id:0, content:''}
+  {id:1, content:''}
 ])
+
+const loading = ref(false)
 
 const sendQuestion = () => {
   
@@ -153,23 +155,10 @@ const sendQuestion = () => {
 }
 
 
-const responses = ref([
-  {id:0, response: ''}
-])
-
-//const merge = ref(questions.value.concat(responses.value))
-
-/*const merge = ref([
-  {id:8, question: 'question1', response: 'response1'},
-  {id:9, question: 'question2', response: 'response2'},
-  {id:10, question: 'question3', response: 'response3'},
-])
-console.log(merge.value)*/
-
-
 
 async function aiResponse() {
-  responses.value[0].response = 'Thinking...'
+  //questions.value[0].content = 'Thinking...'
+    loading.value = true
     
     //create a message
     await createMessage(questions.value[questions.value.length -1].content)
@@ -195,12 +184,14 @@ async function aiResponse() {
     //Display the last message for the current run
     //responses.value.response = data[0].content[0].text.value
    
-  responses.value.push({
-    id: responses.value.length + 1,
-    response: data[0].content[0].text.value
-  })
-  responses.value[0].response = ''
 
+  questions.value.push({
+      id: questions.value.length + 1,
+      content: data[0].content[0].text.value
+    })
+
+  //questions.value[0].content = ''
+    loading.value = false
 }
 
 //console.log(questions.value)
